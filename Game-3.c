@@ -35,41 +35,6 @@ const unsigned char player[]={ // Describes the MetaSprite of our player.
      8,        0,        0xC6,   0x03, // Tile 3 upper right
      8,        8,        0xC7,   0x03, // Tile 4 lower right
         128};
-#define DEF_METASPRITE_2x2(name,code,pal)\
-const unsigned char name[]={\
-        0,      0,      (code)+0,   pal, \
-        0,      8,      (code)+1,   pal, \
-        8,      0,      (code)+2,   pal, \
-        8,      8,      (code)+3,   pal, \
-        128};
-
-#define DEF_METASPRITE_2x2_FLIP(name,code,pal)\
-const unsigned char name[]={\
-        8,      0,      (code)+0,   (pal)|OAM_FLIP_H, \
-        8,      8,      (code)+1,   (pal)|OAM_FLIP_H, \
-        0,      0,      (code)+2,   (pal)|OAM_FLIP_H, \
-        0,      8,      (code)+3,   (pal)|OAM_FLIP_H, \
-        128};
-
-DEF_METASPRITE_2x2(playerStand,0xD8,2);
-DEF_METASPRITE_2x2(playerRRun1, 0xdc, 2);
-DEF_METASPRITE_2x2(playerRRun2, 0xe0, 2);
-DEF_METASPRITE_2x2(playerup, 0xec, 2);
-DEF_METASPRITE_2x2(playerup2, 0xf0, 2);
-
-DEF_METASPRITE_2x2(Enemyrun, 0xc4, 2);
-DEF_METASPRITE_2x2(Enemyrun2, 0xc8, 2);
-
-
-DEF_METASPRITE_2x2_FLIP(playerStandL,0xD8,2);
-DEF_METASPRITE_2x2_FLIP(playerLRun1, 0xdc, 2);
-DEF_METASPRITE_2x2_FLIP(playerLRun2, 0xe0, 2);
-DEF_METASPRITE_2x2_FLIP(playerdown, 0xec, 2);
-DEF_METASPRITE_2x2_FLIP(playerdown2, 0xf0, 2);
-
-DEF_METASPRITE_2x2_FLIP(EnemyrunL, 0xc4, 2);
-DEF_METASPRITE_2x2_FLIP(Enemyrun2L, 0xc8, 2);
-
 
 
 #define TITLE_GAME_STATE 0
@@ -105,24 +70,6 @@ unsigned char num_blocks;
 };
 struct Laser lasers[5];
 //////////////////////////////
-const unsigned char* const Running[16] = {
-  playerStandL,playerLRun1,playerLRun2,playerStandL,
-  playerStandL,playerLRun1,playerLRun2,playerStandL,
-  playerStand,playerRRun1,playerRRun2,playerStand,
-  playerStand,playerRRun1,playerRRun2,playerStand,
-  
-};
-
-const unsigned char* const RunUpDown[16] = {
-
- playerup,playerup2,playerup2,playerup,
-playerup,playerup2,playerup2,playerup,
-  playerdown,playerdown2,playerdown2,playerdown,
-playerdown,playerdown2,playerdown2,playerdown,
-
-};
-
-
 
 void player_movement(){
   	if(controller&PAD_UP && player_y > 32)
