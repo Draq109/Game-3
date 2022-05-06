@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // include NESLIB header
 #include "neslib.h"
@@ -28,12 +29,12 @@ void __fastcall__ famitone_update(void);
 //#link "game2sound.s"
 extern char game2sound_data[];
 
-const unsigned char player[]={ // Describes the MetaSprite of our player.
+static unsigned char player[]={ // Describes the MetaSprite of our player.
   // x-offset, y-offset, tile,   attributes
-     0,        0,        0xC4,   0x03, // Tile 1 upper left
-     0,        8,        0xC5,   0x03, // Tile 2 lower left
-     8,        0,        0xC6,   0x03, // Tile 3 upper right
-     8,        8,        0xC7,   0x03, // Tile 4 lower right
+     0,        0,        0xC4,   0x02, // Tile 1 upper left
+     0,        8,        0xC5,   0x02, // Tile 2 lower left
+     8,        0,        0xC6,   0x02, // Tile 3 upper right
+     8,        8,        0xC7,   0x02, // Tile 4 lower right
         128};
 
 
@@ -44,6 +45,7 @@ const unsigned char player[]={ // Describes the MetaSprite of our player.
 #define GAME_OVER_STATE 4
 #define RETRY_STATE 5
 #define LEVEL_TWO_STATE 6
+#define FAIL_STATE 7
 #define CH_COIN 0x18
 #define CH_LASER 0xCE
 #define CH_BLOCK_D 0xCD
@@ -53,13 +55,15 @@ const unsigned char player[]={ // Describes the MetaSprite of our player.
 
 
 
-static unsigned char controller, oam_id = 0, temp_index, i=0; // Poll for our controller, oam_id, iterator
+static unsigned char controller, oam_id = 0, temp_index, i=0, flicker_flag,temp_x,flick_flags[6]; // Poll for our controller, oam_id, iterator
 static unsigned char player_x,player_y,screen_x,screen_y,coins_x[5],coins_y[5], laser_flag[4],coin_flag[4];//Player x/y coordinates
 static unsigned char game_state = 2, level = 1; // Game State
-static unsigned char scroll_speed = 2, sprite_speed = 1;
-static unsigned char coins_collected = 0, total_coins_collected = 0;
-static unsigned char stars_x[10] = {70,50,35,85,20,180,220,205,175,200};
-static unsigned char stars_y[10] = {150,120,80,60,170,75,170,140,160,100};
+static unsigned char scroll_speed = 2, sprite_speed = 1; // The speed for scrolling and our Player sprite
+static unsigned char coins_collected = 0, total_coins_collected = 0; // Coin variables to keep track, coins_collected keeps track of current level collection, while total keeps track for our end screen
+static unsigned char fuel = 5, fuel_flag = 0, lives = 3; // Status bar variables, used to update and check our sprites.
+static unsigned char collision_flag[5] = {1,1,1,1,1}; // So that collision only registers once per laser, and will be set back to 1 means active laser, 0 is not active.
+static unsigned char stars_x[10] = {70,50,35,85,20,180,220,205,175,200}; // Title screen x pos star sprites
+static unsigned char stars_y[10] = {150,120,80,60,170,75,170,140,160,100}; // Title screen y pos star sprites
 static unsigned char color = 2;
 char number[20] = "0";
 struct Laser{
@@ -70,6 +74,10 @@ unsigned char num_blocks;
 };
 struct Laser lasers[5];
 //////////////////////////////
+
+
+
+
 
 void player_movement(){
   	if(controller&PAD_UP && player_y > 32)
@@ -94,6 +102,84 @@ void player_movement(){
           player_x+=2; 
           oam_id = oam_meta_spr(player_x,player_y,oam_id,player);
         }
+}
+void status_bar(){
+  // Hearts
+  
+   if (lives == 3){
+  oam_id = oam_spr(14,10,0xAF,3,oam_id);
+  oam_id = oam_spr(25,10,0xAF,3,oam_id);
+  oam_id = oam_spr(36,10,0xAF,3,oam_id);
+  }
+   if (lives == 2){
+  oam_id = oam_spr(14,10,0xAF,3,oam_id);
+  oam_id = oam_spr(25,10,0xAF,3,oam_id);
+  oam_id = oam_spr(36,10,0xAE,3,oam_id);
+  }
+   if (lives == 1){
+  oam_id = oam_spr(14,10,0xAF,3,oam_id);
+  oam_id = oam_spr(25,10,0xAE,3,oam_id);
+  oam_id = oam_spr(36,10,0xAE,3,oam_id);
+  }
+  // Fuel Letter Sprites
+  oam_id = oam_spr(14,22,0x46,2,oam_id);
+  oam_id = oam_spr(22,22,0x55,2,oam_id);
+  oam_id = oam_spr(30,22,0x45,2,oam_id);
+  oam_id = oam_spr(38,22,0x4C,2,oam_id);
+  // Fuel decrease when flag == 1
+   if (fuel > 0 && fuel_flag == 1)
+   {
+       fuel -= 1;
+       fuel_flag = 0; 
+   }
+  
+  // Fuel Blocks
+  if (fuel == 5){
+  oam_id = oam_spr(48,22,0x98,2,oam_id);
+  oam_id = oam_spr(56,22,0x98,2,oam_id);
+  oam_id = oam_spr(64,22,0x98,2,oam_id);
+  oam_id = oam_spr(72,22,0x98,2,oam_id);
+  oam_id = oam_spr(80,22,0x98,2,oam_id);
+  }
+  if (fuel == 4){
+  oam_id = oam_spr(48,22,0x98,2,oam_id);
+  oam_id = oam_spr(56,22,0x98,2,oam_id);
+  oam_id = oam_spr(64,22,0x98,2,oam_id);
+  oam_id = oam_spr(72,22,0x98,2,oam_id);
+  oam_id = oam_spr(80,22,0x80,2,oam_id);
+  }
+  if (fuel == 3){
+  oam_id = oam_spr(48,22,0x98,2,oam_id);
+  oam_id = oam_spr(56,22,0x98,2,oam_id);
+  oam_id = oam_spr(64,22,0x98,2,oam_id);
+  oam_id = oam_spr(72,22,0x80,2,oam_id);
+  oam_id = oam_spr(80,22,0x80,2,oam_id);
+  }
+  if (fuel == 2){
+  oam_id = oam_spr(48,22,0x98,2,oam_id);
+  oam_id = oam_spr(56,22,0x98,2,oam_id);
+  oam_id = oam_spr(64,22,0x80,2,oam_id);
+  oam_id = oam_spr(72,22,0x80,2,oam_id);
+  oam_id = oam_spr(80,22,0x80,2,oam_id);
+  }
+  if (fuel == 1){
+  oam_id = oam_spr(48,22,0x98,2,oam_id);
+  oam_id = oam_spr(56,22,0x80,2,oam_id);
+  oam_id = oam_spr(64,22,0x80,2,oam_id);
+  oam_id = oam_spr(72,22,0x80,2,oam_id);
+  oam_id = oam_spr(80,22,0x80,2,oam_id);
+  }
+  if (fuel == 0){
+  oam_id = oam_spr(48,22,0x80,2,oam_id);
+  oam_id = oam_spr(56,22,0x80,2,oam_id);
+  oam_id = oam_spr(64,22,0x80,2,oam_id);
+  oam_id = oam_spr(72,22,0x80,2,oam_id);
+  oam_id = oam_spr(80,22,0x80,2,oam_id);
+  }
+  // check if fuel is empty
+  if (fuel == 0)
+   game_state = FAIL_STATE;
+  	
 }
 
 
@@ -195,6 +281,8 @@ void coin_collision(){
   if((player_x + 12 >= coins_x[0]) && (player_x + 12 <= coins_x[0] + 8))
     if((player_y >= coins_y[0] - 16) && (player_y <= coins_y[0] + 8))
     {
+      if(fuel < 5)
+      	fuel += 1;
       coins_collected +=1;
       coins_x[0] = 0;
       coins_y[0] = 255;
@@ -202,6 +290,8 @@ void coin_collision(){
   if((player_x + 12 >= coins_x[1]) && (player_x + 12 <= coins_x[1] + 8))
     if((player_y >= coins_y[1] - 16) && (player_y <= coins_y[1] + 8))
     {
+      if(fuel < 5)
+      	fuel += 1;
       coins_collected +=1;
       coins_x[1] = 0;
       coins_y[1] = 255;
@@ -209,6 +299,8 @@ void coin_collision(){
    if((player_x + 12 >= coins_x[2]) && (player_x + 12 <= coins_x[2] + 8))
     if((player_y >= coins_y[2] - 16) && (player_y <= coins_y[2] + 8))
     {
+      if(fuel < 5)
+      	fuel += 1;
       coins_collected +=1;
       coins_x[2] = 0;
       coins_y[2] = 255;
@@ -216,6 +308,8 @@ void coin_collision(){
    if((player_x + 12 >= coins_x[3]) && (player_x + 12 <= coins_x[3] + 8))
     if((player_y >= coins_y[3] - 16) && (player_y <= coins_y[3] + 8))
     {
+      if(fuel < 5)
+      	fuel += 1;
       coins_collected +=1;
       coins_x[3] = 0;
       coins_y[3] = 255;
@@ -229,7 +323,7 @@ void make_lasers(char num) {
 // Make if else statements checking if num == 0/1/2/3/4/5 and update that laser
    if(num == 0) {
      // randomize number of blocks for our laser 6 - 12
-     temp_index = (rand() & 3) + 9;
+     temp_index = (rand() & 3) + 7;
      // assign the randomized number to the # of blocks our laser will have
      lasers[0].num_blocks = temp_index; 
      // usual x and y start
@@ -243,6 +337,8 @@ void make_lasers(char num) {
      lasers[0].blocks_y[i] = lasers[0].blocks_y[i-1] + 8;
      }
      lasers[0].end_y = lasers[0].blocks_y[lasers[0].num_blocks - 1];
+     fuel_flag = 1;
+     collision_flag[0] = 1;
    }
    if(num == 1) {
      // randomize number of blocks for our laser 5 - 12
@@ -260,6 +356,7 @@ void make_lasers(char num) {
      	lasers[1].blocks_y[i] = lasers[1].blocks_y[i-1] + 8;
      }
      lasers[1].end_y = lasers[1].blocks_y[lasers[1].num_blocks - 1];
+     collision_flag[1] = 1;
    }
   if(num == 2) {
      // randomize number of blocks for our laser 5 - 12
@@ -277,6 +374,8 @@ void make_lasers(char num) {
      	lasers[2].blocks_y[i] = lasers[2].blocks_y[i-1] + 8;
      }
     lasers[2].end_y = lasers[2].blocks_y[lasers[2].num_blocks - 1];
+    fuel_flag = 1;
+    collision_flag[2] = 1;
    }
   
   if(num == 3) {
@@ -295,6 +394,8 @@ void make_lasers(char num) {
      	lasers[3].blocks_y[i] = lasers[3].blocks_y[i-1] + 8;
      }
     lasers[3].end_y = lasers[3].blocks_y[lasers[3].num_blocks - 1];
+    fuel_flag = 1;
+    collision_flag[3] = 1;
    }
    
 }
@@ -342,6 +443,81 @@ void move_lasers() {
       oam_id = oam_spr(lasers[3].blocks_x[i],lasers[3].blocks_y[i],CH_LASER,color,oam_id);
     }
 }
+void flicker(){
+  
+  if(flicker_flag == 1 && lives > 0)
+  { 
+    if(temp_x == 0)
+      temp_x = screen_x;
+  if (flick_flags[0] == 0 && flick_flags[5] == 0)
+    {
+     player[2] = 0x00;
+     player[6] = 0x00;
+     player[10] = 0x00;
+     player[14] = 0x00;
+     flick_flags[0] = 1;
+     temp_x = 0;
+     return;
+    }
+    
+  if (flick_flags[1] == 0 && flick_flags[0] == 1 && temp_x+15 <= screen_x)
+    {
+     player[2] = 0xC4;
+     player[6] = 0xC5; 
+     player[10] = 0xC6;
+     player[14] = 0xC7;
+    flick_flags[1] = 1;
+    temp_x = 0;
+    return;
+
+    }
+  if (flick_flags[2] == 0 && flick_flags[1] == 1 && temp_x+15 <= screen_x)
+    {
+     player[2] = 0x00;
+     player[6] = 0x00;
+     player[10] = 0x00;
+     player[14] = 0x00;
+     flick_flags[2] = 1;
+    temp_x = 0;
+    return;
+    }
+  if (flick_flags[3] == 0 && flick_flags[2] == 1 && temp_x+15 <= screen_x)
+    {
+     player[2] = 0xC4;
+     player[6] = 0xC5; 
+     player[10] = 0xC6;
+     player[14] = 0xC7;
+     flick_flags[3] = 1;
+     temp_x = 0;
+    return;
+    }
+    
+    if (flick_flags[4] == 0 && flick_flags[3] == 1 && temp_x+15 <= screen_x)
+    {
+     player[2] = 0x00;
+     player[6] = 0x00;
+     player[10] = 0x00;
+     player[14] = 0x00;
+     flick_flags[4] = 1;
+    temp_x = 0;
+    return;
+    }
+  if (flick_flags[5] == 0 && flick_flags[4] == 1 && temp_x+15 <= screen_x)
+    {
+     player[2] = 0xC4;
+     player[6] = 0xC5; 
+     player[10] = 0xC6;
+     player[14] = 0xC7;
+     flick_flags[5] = 1;
+     flicker_flag = 0;
+     temp_x = 0;
+    return;
+    }
+    
+  }
+
+}
+
 
 void spawn_remake_lasers(){
   if(lasers[0].blocks_x[0] == 0)
@@ -358,20 +534,75 @@ void spawn_remake_lasers(){
 }
 
 void detect_laser_collision(){
-  if((player_x + 12 >= lasers[0].blocks_x[0]) && (player_x + 12 <= lasers[0].blocks_x[0] + 8))
+  
+   if((player_x + 12 >= lasers[0].blocks_x[0]) && (player_x + 12 <= lasers[0].blocks_x[0] + 8))
     if((player_y >= lasers[0].start_y-14) && (player_y <= lasers[0].end_y + 7))
-      game_state = GAME_OVER_STATE;
-  if((player_x + 12 >= lasers[1].blocks_x[0]) && (player_x + 12 <= lasers[1].blocks_x[0] + 8))
+    {
+      if(lives == 0)
+      	game_state = FAIL_STATE;
+      else if (lives > 0 && collision_flag[0] == 1)
+        lives -= 1;
+      collision_flag[0] = 0;
+      if (flicker_flag == 0)
+      {
+        flicker_flag = 1;
+        for(i = 0; i < 6; i++)
+          flick_flags[i] = 0;
+      }
+    }
+
+   if((player_x + 12 >= lasers[1].blocks_x[0]) && (player_x + 12 <= lasers[1].blocks_x[0] + 8))
     if((player_y >= lasers[1].start_y-14) && (player_y <= lasers[1].end_y + 7))
-      game_state = GAME_OVER_STATE;
-  if((player_x + 12 >= lasers[2].blocks_x[0]) && (player_x + 12 <= lasers[2].blocks_x[0] + 8))
+    {
+      if(lives == 0)
+      	game_state = FAIL_STATE;
+      else if (lives > 0 && collision_flag[1] == 1)
+        lives -= 1;
+      collision_flag[1] = 0;
+      if (flicker_flag == 0)
+      {
+        flicker_flag = 1;
+        for(i = 0; i < 6; i++)
+          flick_flags[i] = 0;
+      }
+    }
+
+   if((player_x + 12 >= lasers[2].blocks_x[0]) && (player_x + 12 <= lasers[2].blocks_x[0] + 8))
     if((player_y >= lasers[2].start_y-14) && (player_y <= lasers[2].end_y + 7))
-      game_state = GAME_OVER_STATE;
-  if((player_x + 12 >= lasers[3].blocks_x[0]) && (player_x + 12 <= lasers[3].blocks_x[0] + 8))
+    {
+      if(lives == 0)
+      	game_state = FAIL_STATE;
+      else if (lives > 0 && collision_flag[2] == 1)
+        lives -= 1;
+      collision_flag[2] = 0;
+      if (flicker_flag == 0)
+      {
+        flicker_flag = 1;
+        for(i = 0; i < 6; i++)
+          flick_flags[i] = 0;
+      }
+    }
+
+   if((player_x + 12 >= lasers[3].blocks_x[0]) && (player_x + 12 <= lasers[3].blocks_x[0] + 8))
     if((player_y >= lasers[3].start_y-14) && (player_y <= lasers[3].end_y + 7))
-      game_state = GAME_OVER_STATE;
+    {
+      if(lives == 0)
+      	game_state = FAIL_STATE;
+      else if (lives > 0 && collision_flag[3] == 1)
+        lives -= 1;
+      
+      collision_flag[3] = 0;
+      if (flicker_flag == 0)
+      {
+        flicker_flag = 1;
+        for(i = 0; i < 6; i++)
+          flick_flags[i] = 0;
+      }
+    }
   
 return;}
+
+
 
 void fade_out(){
 byte x;
@@ -482,6 +713,8 @@ void main(void)
   	      screen_y = 0;   // y scroll position
               scroll_speed = 2;
               sprite_speed = 1;
+              lives = 3;
+              fuel = 5;
               level = 1;
               color = 3;
               for(i = 0; i < 4; i++){
@@ -515,9 +748,19 @@ void main(void)
             	move_coins();
             	coin_collision();
             	detect_laser_collision();
+            	flicker();
             	scroll(screen_x, screen_y); // scrolling screen
             	screen_x += scroll_speed; // adding one to our scroll coordinate x
+            	// -------------------------------------
+            	status_bar();
             	
+            
+            
+            
+            
+            
+            
+            	// -------------------------------------
             	if (coins_collected == 25 && level !=2){
 		game_state = NEW_LEVEL_STATE;
                 total_coins_collected += coins_collected;
@@ -541,11 +784,15 @@ void main(void)
   	      //screen_y = 0;   // y scroll position
               scroll_speed = 2;
               sprite_speed = 1;
+              fuel = 5;
               level = 2;
               color = 0;
               for(i = 0; i < 4; i++){
     		laser_flag[i] = 1;
     		coin_flag[i] = 1;}
+              for(i = 0; i < 6; i++)
+                flick_flags[i] = 0;
+              flicker_flag = 0;
               coins_collected = 0;
               vram_adr(NTADR_A(0,0));
   	      vram_unrle(Background_2_Game_3);
@@ -602,7 +849,7 @@ void main(void)
             vram_adr(NTADR_A(11,14));
             total_coins_collected += coins_collected;
             itoa(total_coins_collected*4,number,10);
-            vram_write("Your Score:",10);
+            vram_write("Your Score",10);
             vram_adr(NTADR_A(22,14));
             vram_write(number,10);
             vram_adr(NTADR_A(11,18));
@@ -629,7 +876,27 @@ void main(void)
              fade_in();
            }
           }
-          
+          if(game_state == FAIL_STATE)
+          {
+            oam_clear(); 
+            
+            oam_id = oam_meta_spr(player_x,player_y,oam_id,player);
+           
+            
+              controller = PAD_RIGHT;
+            if(player_y < 198){
+          	player_y+=1;
+          	oam_id = oam_meta_spr(player_x,player_y,oam_id,player);
+        	}
+       	    
+   	    if(controller&PAD_RIGHT && player_x <= 242){
+          	player_x+=1; 
+          	oam_id = oam_meta_spr(player_x,player_y,oam_id,player);
+        	}
+            
+            if (player_y == 198)
+               game_state = GAME_OVER_STATE;
+          }
         ppu_wait_frame();
 	}
 }
