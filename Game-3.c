@@ -46,6 +46,7 @@ static unsigned char player[]={ // Describes the MetaSprite of our player.
 #define RETRY_STATE 5
 #define LEVEL_TWO_STATE 6
 #define FAIL_STATE 7
+#define WIN_SCREEN_STATE 8
 #define CH_COIN 0x18
 #define CH_LASER 0xCE
 #define CH_BLOCK_D 0xCD
@@ -761,6 +762,11 @@ void main(void)
                 scroll_speed = 3;
                 sprite_speed = 2;
                 }
+            	if (coins_collected == 25 && level == 2){
+		game_state = WIN_SCREEN_STATE;
+                total_coins_collected += coins_collected;
+                music_stop();
+                }
             	
           }
          if(game_state == LEVEL_TWO_STATE)
@@ -887,6 +893,31 @@ void main(void)
             
             if (player_y == 198)
                game_state = GAME_OVER_STATE;
+          }
+          if(game_state == WIN_SCREEN_STATE)
+          {
+            music_stop();
+            fade_out();
+            scroll(0, 0);
+            ppu_off();
+            vram_adr(NTADR_A(0,0));
+            vram_fill(0x00,32*30);
+            vram_adr(NTADR_A(11,10));
+            vram_write("Game Over",9);
+            vram_adr(NTADR_A(11,14));
+            total_coins_collected += coins_collected;
+            itoa(total_coins_collected*4,number,10);
+            vram_write("Your Score",10);
+            vram_adr(NTADR_A(22,14));
+            vram_write(number,10);
+            vram_adr(NTADR_A(11,18));
+            vram_write("Try again?",10);
+            fade_in();
+            pal_bright(3);
+            oam_clear();
+            ppu_on_bg();
+            game_state = RETRY_STATE;
+          
           }
         ppu_wait_frame();
 	}
