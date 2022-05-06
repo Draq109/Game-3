@@ -55,8 +55,8 @@ static unsigned char player[]={ // Describes the MetaSprite of our player.
 
 
 
-static unsigned char controller, oam_id = 0, temp_index, i=0, flicker_flag,temp_x,flick_flags[6]; // Poll for our controller, oam_id, iterator
-static unsigned char player_x,player_y,screen_x,screen_y,coins_x[5],coins_y[5], laser_flag[4],coin_flag[4];//Player x/y coordinates
+static unsigned char controller, oam_id = 0, temp_index, i=0, flicker_flag,temp_x=0,flick_flags[6]; // Poll for our controller, oam_id, iterator
+static unsigned char player_x,player_y,screen_x,screen_y,coins_x[5],coins_y[5], laser_flag[4],coin_flag[4], player_x_speed=2;//Player x/y coordinates
 static unsigned char game_state = 2, level = 1; // Game State
 static unsigned char scroll_speed = 2, sprite_speed = 1; // The speed for scrolling and our Player sprite
 static unsigned char coins_collected = 0, total_coins_collected = 0; // Coin variables to keep track, coins_collected keeps track of current level collection, while total keeps track for our end screen
@@ -93,13 +93,13 @@ void player_movement(){
   
   	 if(controller&PAD_LEFT && player_x > 32)
         {
-          player_x-=2; 
+          player_x-=player_x_speed; 
           oam_id = oam_meta_spr(player_x,player_y,oam_id,player);
         }
   
    	if(controller&PAD_RIGHT && player_x < 112)
         {
-          player_x+=2; 
+          player_x+=player_x_speed; 
           oam_id = oam_meta_spr(player_x,player_y,oam_id,player);
         }
 }
@@ -445,11 +445,12 @@ void move_lasers() {
 }
 void flicker(){
   
-  if(flicker_flag == 1 && lives > 0)
+  if(flicker_flag == 1 && lives >= 1)
   { 
+    player_x_speed=0;
     if(temp_x == 0)
       temp_x = screen_x;
-  if (flick_flags[0] == 0 && flick_flags[5] == 0)
+  if (flick_flags[0] == 0 && flick_flags[3] == 0)
     {
      player[2] = 0x00;
      player[6] = 0x00;
@@ -460,7 +461,7 @@ void flicker(){
      return;
     }
     
-  if (flick_flags[1] == 0 && flick_flags[0] == 1 && temp_x+15 <= screen_x)
+  if (flick_flags[1] == 0 && flick_flags[0] == 1 && temp_x+20 <= screen_x)
     {
      player[2] = 0xC4;
      player[6] = 0xC5; 
@@ -471,7 +472,7 @@ void flicker(){
     return;
 
     }
-  if (flick_flags[2] == 0 && flick_flags[1] == 1 && temp_x+15 <= screen_x)
+  if (flick_flags[2] == 0 && flick_flags[1] == 1 && temp_x+20 <= screen_x)
     {
      player[2] = 0x00;
      player[6] = 0x00;
@@ -481,40 +482,29 @@ void flicker(){
     temp_x = 0;
     return;
     }
-  if (flick_flags[3] == 0 && flick_flags[2] == 1 && temp_x+15 <= screen_x)
+  if (flick_flags[3] == 0 && flick_flags[2] == 1 && temp_x+20 <= screen_x)
     {
      player[2] = 0xC4;
      player[6] = 0xC5; 
      player[10] = 0xC6;
      player[14] = 0xC7;
      flick_flags[3] = 1;
+     flicker_flag = 0;
      temp_x = 0;
+     player_x_speed = 2;
     return;
     }
-    
-    if (flick_flags[4] == 0 && flick_flags[3] == 1 && temp_x+15 <= screen_x)
-    {
-     player[2] = 0x00;
-     player[6] = 0x00;
-     player[10] = 0x00;
-     player[14] = 0x00;
-     flick_flags[4] = 1;
-    temp_x = 0;
-    return;
-    }
-  if (flick_flags[5] == 0 && flick_flags[4] == 1 && temp_x+15 <= screen_x)
-    {
-     player[2] = 0xC4;
+  }
+  if (lives == 0)
+  {
+    player[2] = 0xC4;
      player[6] = 0xC5; 
      player[10] = 0xC6;
      player[14] = 0xC7;
-     flick_flags[5] = 1;
-     flicker_flag = 0;
-     temp_x = 0;
-    return;
-    }
-    
   }
+  
+  
+  
 
 }
 
@@ -717,6 +707,7 @@ void main(void)
               fuel = 5;
               level = 1;
               color = 3;
+              temp_x = 0;
               for(i = 0; i < 4; i++){
     		laser_flag[i] = 1;
     		coin_flag[i] = 1;}
