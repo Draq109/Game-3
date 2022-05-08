@@ -65,6 +65,8 @@ static unsigned char fuel = 5, fuel_flag = 0, lives = 3; // Status bar variables
 static unsigned char collision_flag[5] = {1,1,1,1,1}; // So that collision only registers once per laser, and will be set back to 1 means active laser, 0 is not active.
 static unsigned char stars_x[10] = {70,50,35,85,20,180,220,205,175,200}; // Title screen x pos star sprites
 static unsigned char stars_y[10] = {150,120,80,60,170,75,170,140,160,100}; // Title screen y pos star sprites
+static unsigned char falling[5] = {160,24,30,80,200};
+
 static unsigned char color = 2;
 char number[20] = "0";
 struct Laser{
@@ -462,7 +464,7 @@ void flicker(){
      return;
     }
     
-  if (flick_flags[1] == 0 && flick_flags[0] == 1 && temp_x+20 <= screen_x)
+  if (flick_flags[1] == 0 && flick_flags[0] == 1 && temp_x+10 <= screen_x)
     {
      player[2] = 0xC4;
      player[6] = 0xC5; 
@@ -473,7 +475,7 @@ void flicker(){
     return;
 
     }
-  if (flick_flags[2] == 0 && flick_flags[1] == 1 && temp_x+20 <= screen_x)
+  if (flick_flags[2] == 0 && flick_flags[1] == 1 && temp_x+10 <= screen_x)
     {
      player[2] = 0x00;
      player[6] = 0x00;
@@ -483,7 +485,7 @@ void flicker(){
     temp_x = 0;
     return;
     }
-  if (flick_flags[3] == 0 && flick_flags[2] == 1 && temp_x+20 <= screen_x)
+  if (flick_flags[3] == 0 && flick_flags[2] == 1 && temp_x+10 <= screen_x)
     {
      player[2] = 0xC4;
      player[6] = 0xC5; 
@@ -529,10 +531,10 @@ void detect_laser_collision(){
    if((player_x + 12 >= lasers[0].blocks_x[0]) && (player_x + 12 <= lasers[0].blocks_x[0] + 8))
     if((player_y >= lasers[0].start_y-14) && (player_y <= lasers[0].end_y + 7))
     {
+      if (lives > 0 && collision_flag[0] == 1)
+        lives -= 1;
       if(lives == 0)
       	game_state = FAIL_STATE;
-      else if (lives > 0 && collision_flag[0] == 1)
-        lives -= 1;
       collision_flag[0] = 0;
       if (flicker_flag == 0)
       {
@@ -545,10 +547,10 @@ void detect_laser_collision(){
    if((player_x + 12 >= lasers[1].blocks_x[0]) && (player_x + 12 <= lasers[1].blocks_x[0] + 8))
     if((player_y >= lasers[1].start_y-14) && (player_y <= lasers[1].end_y + 7))
     {
+      if (lives > 0 && collision_flag[1] == 1)
+        lives -= 1;
       if(lives == 0)
       	game_state = FAIL_STATE;
-      else if (lives > 0 && collision_flag[1] == 1)
-        lives -= 1;
       collision_flag[1] = 0;
       if (flicker_flag == 0)
       {
@@ -561,10 +563,10 @@ void detect_laser_collision(){
    if((player_x + 12 >= lasers[2].blocks_x[0]) && (player_x + 12 <= lasers[2].blocks_x[0] + 8))
     if((player_y >= lasers[2].start_y-14) && (player_y <= lasers[2].end_y + 7))
     {
+      if (lives > 0 && collision_flag[2] == 1)
+        lives -= 1;
       if(lives == 0)
       	game_state = FAIL_STATE;
-      else if (lives > 0 && collision_flag[2] == 1)
-        lives -= 1;
       collision_flag[2] = 0;
       if (flicker_flag == 0)
       {
@@ -577,10 +579,10 @@ void detect_laser_collision(){
    if((player_x + 12 >= lasers[3].blocks_x[0]) && (player_x + 12 <= lasers[3].blocks_x[0] + 8))
     if((player_y >= lasers[3].start_y-14) && (player_y <= lasers[3].end_y + 7))
     {
+      if (lives > 0 && collision_flag[3] == 1)
+        lives -= 1;
       if(lives == 0)
       	game_state = FAIL_STATE;
-      else if (lives > 0 && collision_flag[3] == 1)
-        lives -= 1;
       
       collision_flag[3] = 0;
       if (flicker_flag == 0)
@@ -723,7 +725,7 @@ void main(void)
             
               //reset_all_sprites();
               fade_in();
-              music_play(0);
+              //music_play(0);
               game_state = PLAY_GAME_STATE;
             continue;
           }
@@ -753,7 +755,7 @@ void main(void)
             
             
             	// -------------------------------------
-            	if (coins_collected == 25 && level !=2){
+            	if (coins_collected == 15 && level !=2){
 		game_state = NEW_LEVEL_STATE;
                 total_coins_collected += coins_collected;
                 music_stop();
@@ -762,8 +764,9 @@ void main(void)
                 scroll_speed = 3;
                 sprite_speed = 2;
                 }
-            	if (coins_collected == 25 && level == 2){
-		game_state = WIN_SCREEN_STATE;
+            	if (coins_collected == 15 && level == 2){
+		game_state = NEW_LEVEL_STATE;
+                 
                 total_coins_collected += coins_collected;
                 music_stop();
                 }
@@ -826,7 +829,10 @@ void main(void)
             
             if (player_y == 0)
             {
-            	game_state = LEVEL_TWO_STATE;
+              	if (level != 2)
+                  game_state = LEVEL_TWO_STATE;
+              	else
+                  game_state = WIN_SCREEN_STATE;
             	fade_out();
               	ppu_off();
             }
@@ -845,10 +851,7 @@ void main(void)
             vram_write("Game Over",9);
             vram_adr(NTADR_A(11,14));
             total_coins_collected += coins_collected;
-            itoa(total_coins_collected*4,number,10);
-            vram_write("Your Score",10);
-            vram_adr(NTADR_A(22,14));
-            vram_write(number,10);
+            
             vram_adr(NTADR_A(11,18));
             vram_write("Try again?",10);
             fade_in();
@@ -897,26 +900,44 @@ void main(void)
           if(game_state == WIN_SCREEN_STATE)
           {
             music_stop();
-            fade_out();
             scroll(0, 0);
             ppu_off();
+            pal_bg(palette);
             vram_adr(NTADR_A(0,0));
-            vram_fill(0x00,32*30);
-            vram_adr(NTADR_A(11,10));
-            vram_write("Game Over",9);
-            vram_adr(NTADR_A(11,14));
-            total_coins_collected += coins_collected;
-            itoa(total_coins_collected*4,number,10);
-            vram_write("Your Score",10);
-            vram_adr(NTADR_A(22,14));
-            vram_write(number,10);
-            vram_adr(NTADR_A(11,18));
-            vram_write("Try again?",10);
+            vram_unrle(Winscreen);
+             oam_clear();
+            ppu_on_all();
             fade_in();
-            pal_bright(3);
-            oam_clear();
-            ppu_on_bg();
-            game_state = RETRY_STATE;
+           controller = PAD_A;
+            while(game_state == WIN_SCREEN_STATE)
+            {
+              controller = pad_poll(0);
+             oam_id = oam_spr(falling[0],falling[1],0xac,2,oam_id);
+             oam_id = oam_spr(falling[2],falling[1],0xac,2,oam_id); 
+             oam_id = oam_spr(falling[3],falling[1]+140,0xac,2,oam_id); 
+             oam_id = oam_spr(falling[4],falling[1]+160,0xac,2,oam_id); 
+             oam_id = oam_meta_spr(120,180,oam_id,player); 
+              ppu_wait_frame();
+              falling[0] -=2;
+              falling[1] +=2;
+              falling[2]  -=2;
+              falling[3] -=2;
+              falling[4] -=2;
+            if(controller&PAD_START)
+           {
+             game_state = TITLE_GAME_STATE;
+             fade_out();
+             ppu_off();
+             vram_adr(NTADR_A(0,0));
+  	     vram_unrle(Title_Game_3);
+             setup_graphics();
+             ppu_on_all();
+             fade_in();
+           }
+              
+            }
+            
+
           
           }
         ppu_wait_frame();
