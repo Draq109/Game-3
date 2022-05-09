@@ -125,10 +125,10 @@ void status_bar(){
   oam_id = oam_spr(36,10,0xAE,3,oam_id);
   }
   // Fuel Letter Sprites
-  oam_id = oam_spr(14,22,0x46,2,oam_id);
-  oam_id = oam_spr(22,22,0x55,2,oam_id);
-  oam_id = oam_spr(30,22,0x45,2,oam_id);
-  oam_id = oam_spr(38,22,0x4C,2,oam_id);
+  oam_id = oam_spr(14,22,0x47,2,oam_id);
+  oam_id = oam_spr(22,22,0x41,2,oam_id);
+  oam_id = oam_spr(30,22,0x53,2,oam_id);
+ // oam_id = oam_spr(38,22,0x4C,2,oam_id);
   // Fuel decrease when flag == 1
    if (fuel > 0 && fuel_flag == 1)
    {
@@ -138,46 +138,46 @@ void status_bar(){
   
   // Fuel Blocks
   if (fuel == 5){
+  oam_id = oam_spr(40,22,0x98,2,oam_id);
   oam_id = oam_spr(48,22,0x98,2,oam_id);
   oam_id = oam_spr(56,22,0x98,2,oam_id);
   oam_id = oam_spr(64,22,0x98,2,oam_id);
   oam_id = oam_spr(72,22,0x98,2,oam_id);
-  oam_id = oam_spr(80,22,0x98,2,oam_id);
   }
   if (fuel == 4){
-  oam_id = oam_spr(48,22,0x98,2,oam_id);
-  oam_id = oam_spr(56,22,0x98,2,oam_id);
-  oam_id = oam_spr(64,22,0x98,2,oam_id);
-  oam_id = oam_spr(72,22,0x98,2,oam_id);
-  oam_id = oam_spr(80,22,0x80,2,oam_id);
-  }
-  if (fuel == 3){
+  oam_id = oam_spr(40,22,0x98,2,oam_id);
   oam_id = oam_spr(48,22,0x98,2,oam_id);
   oam_id = oam_spr(56,22,0x98,2,oam_id);
   oam_id = oam_spr(64,22,0x98,2,oam_id);
   oam_id = oam_spr(72,22,0x80,2,oam_id);
-  oam_id = oam_spr(80,22,0x80,2,oam_id);
   }
-  if (fuel == 2){
+  if (fuel == 3){
+  oam_id = oam_spr(40,22,0x98,2,oam_id);
   oam_id = oam_spr(48,22,0x98,2,oam_id);
   oam_id = oam_spr(56,22,0x98,2,oam_id);
   oam_id = oam_spr(64,22,0x80,2,oam_id);
   oam_id = oam_spr(72,22,0x80,2,oam_id);
-  oam_id = oam_spr(80,22,0x80,2,oam_id);
   }
-  if (fuel == 1){
+  if (fuel == 2){
+  oam_id = oam_spr(40,22,0x98,2,oam_id);
   oam_id = oam_spr(48,22,0x98,2,oam_id);
   oam_id = oam_spr(56,22,0x80,2,oam_id);
   oam_id = oam_spr(64,22,0x80,2,oam_id);
   oam_id = oam_spr(72,22,0x80,2,oam_id);
-  oam_id = oam_spr(80,22,0x80,2,oam_id);
   }
-  if (fuel == 0){
+  if (fuel == 1){
+  oam_id = oam_spr(40,22,0x98,2,oam_id);
   oam_id = oam_spr(48,22,0x80,2,oam_id);
   oam_id = oam_spr(56,22,0x80,2,oam_id);
   oam_id = oam_spr(64,22,0x80,2,oam_id);
   oam_id = oam_spr(72,22,0x80,2,oam_id);
-  oam_id = oam_spr(80,22,0x80,2,oam_id);
+  }
+  if (fuel == 0){
+  oam_id = oam_spr(40,22,0x80,2,oam_id);
+  oam_id = oam_spr(48,22,0x80,2,oam_id);
+  oam_id = oam_spr(56,22,0x80,2,oam_id);
+  oam_id = oam_spr(64,22,0x80,2,oam_id);
+  oam_id = oam_spr(72,22,0x80,2,oam_id);
   }
   // check if fuel is empty
   if (fuel == 0)
